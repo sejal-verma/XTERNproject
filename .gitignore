@@ -1,3 +1,136 @@
-.MISO-venv.envwebapp/assets/*.shp
-webapp/assets/*.shp
+# Virtual environments
+.MISO-venv/
+venv/
+env/
+.env
+
+# Python cache and compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+
+# Environment variables
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary files
+temp_*/
+*.tmp
+*.temp
+temp_images/
+temp_screenshots/
+
+# Log files
+*.log
+logs/
+
+# Data files (keep structure but ignore large data)
+data/raw/*.csv
+data/raw/*.json
+data/processed/*.csv
+data/processed/*.geojson
+
+# Output files (optional - comment out if you want to track outputs)
+# output/heatmaps/*.html
+# output/data/*.csv
+# output/*.gif
+# output/*.png
+
+# API keys and secrets
+config.py
+secrets.py
+.secrets
+api_keys.txt
+
+# Development and debugging
+debug/
+scratch/
+playground/
+
+# Jupyter notebook outputs and metadata
+*.ipynb_checkpoints/
+.ipynb_checkpoints/
+
+# Model artifacts and large files
+*.pkl
+*.pickle
+*.joblib
+*.h5
+*.hdf5
+*.model
+
+# Matplotlib/Plotly cache
+.matplotlib/
+.plotly/
+
+# System and editor backup files
+*.bak
+*.backup
+*~
+.#*
+#*#
+
+# Development cleanup scripts
+*cleanup*.py
+final_cleanup.py
+pre_merge_cleanup.py
+
+# Temporary visualization files
+temp_images/
+temp_screenshots/
+temp_plots/
+
+# Webapp assets from remote
 webapp/assets/*.shp
