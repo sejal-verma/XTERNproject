@@ -83,10 +83,13 @@ data/processed/*.csv
 data/processed/*.geojson
 
 # Output files (optional - comment out if you want to track outputs)
-# output/heatmaps/*.html
 # output/data/*.csv
 # output/*.gif
 # output/*.png
+
+# Large HTML output files (generated, not for version control)
+quinton-final-kiro/output/archive/*.html
+quinton-final-kiro/output/heatmaps/*.html
 
 # API keys and secrets
 config.py
