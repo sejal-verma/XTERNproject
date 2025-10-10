@@ -73,18 +73,22 @@ class MISOFootprint:
     
     def _create_demo_footprint(self) -> gpd.GeoDataFrame:
         """Create simplified demo footprint for development/testing"""
-        # Approximate MISO footprint as a polygon covering the main region
-        # Coordinates roughly covering IL, IN, MI, WI, MN, IA, MO, AR, LA, MS
+        # More accurate MISO footprint covering actual MISO territory
+        # Excludes Texas (ERCOT) and focuses on core MISO states:
+        # IL, IN, MI, WI, MN, IA, MO, AR, LA (northern), MS (northern), ND, parts of MT, SD
         
         demo_coords = [
-            (-98.0, 48.0),   # Northwest corner (ND)
-            (-84.0, 48.0),   # Northeast corner (MI/Canada)
+            (-104.0, 49.0),  # Northwest corner (ND/MT border)
+            (-84.0, 49.0),   # Northeast corner (MI/Canada)
             (-82.0, 42.0),   # East side (OH border)
-            (-85.0, 36.0),   # Southeast (KY/TN)
-            (-92.0, 33.0),   # South (AR/LA)
-            (-93.0, 29.5),   # Southwest (LA Gulf)
-            (-98.0, 32.0),   # West side (TX panhandle)
-            (-98.0, 48.0)    # Close polygon
+            (-84.0, 36.5),   # Southeast (KY/TN border)
+            (-89.0, 35.0),   # South central (AR/TN border)
+            (-91.0, 33.0),   # South (AR/LA border - northern LA only)
+            (-94.0, 33.0),   # Southwest (AR/TX border - excludes TX)
+            (-95.0, 36.0),   # West side (MO/KS border)
+            (-96.0, 40.0),   # West central (IA/NE border)
+            (-104.0, 46.0),  # Northwest (ND/MT)
+            (-104.0, 49.0)   # Close polygon
         ]
         
         # Create polygon

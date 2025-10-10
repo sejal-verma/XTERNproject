@@ -1,0 +1,156 @@
+MISO WEATHER-STRESS HEATMAP - OPERATIONAL NOTES
+Generated: 2025-10-10 10:19:30 UTC
+Version: 20251010_101930
+
+===============================================================================
+EXECUTIVE SUMMARY
+===============================================================================
+
+This report provides weather-related grid stress risk assessment for the MISO
+footprint across multiple forecast horizons. Risk scores are relative measures
+designed to highlight areas of elevated concern for grid operations.
+
+IMPORTANT: This analysis uses proxy data and simplified models. Results are for
+research purposes only and should not be used for operational decisions without
+validation by qualified grid operators.
+
+===============================================================================
+TOP RISK HOTSPOTS BY FORECAST HORIZON
+===============================================================================
+
+12h FORECAST - TOP 10 HOTSPOTS:
+------------------------------------------------------------
+ 1. Cell hex_0999: Risk=3.131
+    Primary Driver: Vulnerability (Infrastructure)
+    Components: H=0.700, E=0.718, V=0.743
+    Weather: T=84.2°F, HI=128.0°F, Gust=52.3mph
+
+ 2. Cell hex_1433: Risk=3.011
+    Primary Driver: Exposure (Population)
+    Components: H=0.656, E=0.797, V=0.656
+    Weather: T=80.4°F, HI=120.2°F, Gust=45.6mph
+
+ 3. Cell hex_0716: Risk=2.921
+    Primary Driver: Exposure (Population)
+    Components: H=0.637, E=0.783, V=0.665
+    Weather: T=85.6°F, HI=128.4°F, Gust=43.7mph
+
+ 4. Cell hex_0628: Risk=2.920
+    Primary Driver: Exposure (Population)
+    Components: H=0.584, E=0.814, V=0.749
+    Weather: T=87.0°F, HI=130.4°F, Gust=33.6mph, Precip=1.4mm/h
+
+ 5. Cell hex_0729: Risk=2.870
+    Primary Driver: Exposure (Population)
+    Components: H=0.608, E=0.777, V=0.711
+    Weather: T=89.6°F, HI=134.4°F, Gust=40.8mph
+
+ 6. Cell hex_1221: Risk=2.869
+    Primary Driver: Vulnerability (Infrastructure)
+    Components: H=0.650, E=0.670, V=0.767
+    Weather: T=81.9°F, HI=124.4°F, Gust=45.0mph
+
+ 7. Cell hex_0549: Risk=2.832
+    Primary Driver: Vulnerability (Infrastructure)
+    Components: H=0.652, E=0.666, V=0.744
+    Weather: T=93.2°F, HI=138.6°F, Gust=45.2mph
+
+ 8. Cell hex_0760: Risk=2.832
+    Primary Driver: Vulnerability (Infrastructure)
+    Components: H=0.634, E=0.663, V=0.794
+    Weather: T=85.4°F, HI=127.9°F, Gust=43.4mph
+
+ 9. Cell hex_0415: Risk=2.802
+    Primary Driver: Vulnerability (Infrastructure)
+    Components: H=0.613, E=0.726, V=0.732
+    Weather: T=88.0°F, HI=134.0°F, Gust=41.3mph
+
+10. Cell hex_0865: Risk=2.801
+    Primary Driver: Hazard (Weather) - Thermal Stress
+    Components: H=0.684, E=0.645, V=0.675
+    Weather: T=82.0°F, HI=126.4°F, Gust=48.4mph
+
+
+24h FORECAST: No data available
+
+36h FORECAST: No data available
+
+48h FORECAST: No data available
+
+===============================================================================
+RISK DISTRIBUTION SUMMARY
+===============================================================================
+
+12h FORECAST STATISTICS:
+  Total Cells: 2686
+  Mean Risk: 0.000
+  Std Dev: 1.000
+  Min Risk: -1.772
+  Max Risk: 3.131
+  95th Percentile: 2.014
+  High Risk Cells (>95th %ile): 135
+
+===============================================================================
+DATA SOURCES AND FRESHNESS
+===============================================================================
+
+WEATHER DATA:
+  Primary Source: NOAA/NWS Gridpoint Forecast API
+  Fallback Source: Open-Meteo API
+  Data Retrieved: 2025-10-10 10:19 UTC
+  Forecast Horizons: 12h, 24h, 36h, 48h
+
+INFRASTRUCTURE DATA:
+  Generation Capacity: EIA-860/923 (or equivalent public data)
+  Population Data: US Census Bureau
+  Transmission Data: Public sources when available, baseline values otherwise
+  
+PROCESSING:
+  Grid System: Hexagonal (approximately 40-km spacing)
+  Coordinate System: EPSG:4326 (WGS84)
+  Processing Timestamp: 20251010_101930
+
+===============================================================================
+DISCLAIMERS AND LIMITATIONS
+===============================================================================
+
+IMPORTANT DISCLAIMERS:
+
+1. RESEARCH TOOL ONLY: This system is designed for research and analysis 
+   purposes. Results should NOT be used for operational decisions without 
+   validation by qualified grid operators.
+
+2. PROXY DATA USAGE: The analysis relies on proxy data including:
+   - Population density as proxy for electrical load
+   - Generation capacity as proxy for actual output
+   - Simplified transmission density calculations
+
+3. MODEL LIMITATIONS:
+   - Linear risk scoring functions may not capture complex interactions
+   - Static infrastructure data does not reflect real-time conditions
+   - Weather forecast uncertainty is not explicitly modeled
+
+4. SPATIAL LIMITATIONS:
+   - Approximately 40-km grid resolution may mask local variations
+   - Edge effects at MISO boundary
+   - Point-to-grid aggregation introduces uncertainty
+
+5. TEMPORAL LIMITATIONS:
+   - Forecast accuracy decreases with longer horizons
+   - No consideration of diurnal load patterns
+   - Static seasonal adjustments
+
+RECOMMENDED ACTIONS:
+
+- Use results for situational awareness and trend identification
+- Validate high-risk areas with additional data sources
+- Consider local knowledge and operational experience
+- Monitor forecast updates and confidence levels
+- Treat as one input among many for decision making
+
+For technical questions or methodology details, refer to the accompanying 
+method card and documentation.
+
+===============================================================================
+END OF OPERATIONAL NOTES - Generated 2025-10-10 10:19:30 UTC
+===============================================================================
