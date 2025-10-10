@@ -153,15 +153,15 @@
     - Validate ablation results against expected component contributions
     - _Requirements: 6.3, 8.2_
 
-- [-] 10. Create output and export system
-  - [-] 10.1 Implement standardized file exports
+- [x] 10. Create output and export system
+  - [x] 10.1 Implement standardized file exports
     - Save interactive HTML maps for each forecast horizon (12h, 24h, 36h, 48h)
     - Generate PNG snapshots of all maps for static reporting
     - Export comprehensive CSV with cell_id × horizon_h × risk scores × components
     - Create method card (markdown) documenting data sources, methodology, and limitations
     - _Requirements: 1.4, 5.5_
 
-  - [ ] 10.2 Generate operational summary outputs
+  - [x] 10.2 Generate operational summary outputs
     - Create "Ops Notes" text file with top hotspots, risk drivers, and confidence assessments
     - Generate summary statistics table showing risk distribution by horizon
     - Add data freshness timestamps and API source documentation
