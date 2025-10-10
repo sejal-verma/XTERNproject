@@ -116,7 +116,7 @@
     - Validate risk score distribution and mathematical correctness
     - _Requirements: 4.4, 5.4_
 
-- [ ] 7. Implement confidence assessment system
+- [-] 7. Implement confidence assessment system
   - Create confidence calculation based on data coverage and forecast horizon
   - Implement decreasing confidence with longer forecast horizons
   - Add data quality penalties for missing infrastructure or weather data
