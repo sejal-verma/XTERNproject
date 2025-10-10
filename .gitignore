@@ -1,1 +1,2 @@
-.env
+.envwebapp/assets/*.shp
+webapp/assets/*.shp
