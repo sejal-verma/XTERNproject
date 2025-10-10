@@ -116,45 +116,45 @@
     - Validate risk score distribution and mathematical correctness
     - _Requirements: 4.4, 5.4_
 
-- [-] 7. Implement confidence assessment system
+- [x] 7. Implement confidence assessment system
   - Create confidence calculation based on data coverage and forecast horizon
   - Implement decreasing confidence with longer forecast horizons
   - Add data quality penalties for missing infrastructure or weather data
   - Calculate per-cell confidence scores and validate confidence ranges [0,1]
   - _Requirements: 6.1, 6.5_
 
-- [ ] 8. Build interactive visualization system
-  - [ ] 8.1 Create Folium map generator
+- [x] 8. Build interactive visualization system
+  - [x] 8.1 Create Folium map generator
     - Implement choropleth mapping of risk scores with YlOrRd color scale
     - Add layer control for toggling between 12h, 24h, 36h, 48h forecast horizons
     - Create interactive tooltips showing risk score, top 3 contributors, confidence, weather inputs
     - Add map legends, scale bars, and clear captions
     - _Requirements: 1.1, 1.3, 8.3_
 
-  - [ ] 8.2 Create summary visualization components
+  - [x] 8.2 Create summary visualization components
     - Implement top-10 highest risk cells table with contributing factors per horizon
     - Create Plotly bar charts showing risk component breakdown for selected cells
     - Add line charts showing risk evolution across forecast horizons for selected cells
     - Generate ablation analysis charts showing risk sensitivity to component removal
     - _Requirements: 8.1, 8.2_
 
-- [ ] 9. Implement validation and quality assurance system
-  - [ ] 9.1 Create data coverage validation
+- [x] 9. Implement validation and quality assurance system
+  - [x] 9.1 Create data coverage validation
     - Implement minimum coverage threshold checks for weather and infrastructure data
     - Add automatic degradation to demo mode when coverage falls below thresholds
     - Create user warnings for data gaps and their impact on confidence
     - Log all data quality issues and coverage statistics
     - _Requirements: 6.2, 6.4_
 
-  - [ ] 9.2 Implement ablation analysis
+  - [x] 9.2 Implement ablation analysis
     - Create functions to recompute risk with individual components (H, E, V) removed
     - Generate sensitivity analysis showing risk changes when components are dropped
     - Add ablation visualization showing component importance across the grid
     - Validate ablation results against expected component contributions
     - _Requirements: 6.3, 8.2_
 
-- [ ] 10. Create output and export system
-  - [ ] 10.1 Implement standardized file exports
+- [-] 10. Create output and export system
+  - [-] 10.1 Implement standardized file exports
     - Save interactive HTML maps for each forecast horizon (12h, 24h, 36h, 48h)
     - Generate PNG snapshots of all maps for static reporting
     - Export comprehensive CSV with cell_id × horizon_h × risk scores × components
