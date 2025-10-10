@@ -7,15 +7,15 @@
   - Create directory structure for data/raw/, data/processed/, and output/
   - _Requirements: 5.1, 5.2, 5.3, 5.4_
 
-- [ ] 2. Implement MISO footprint and hexagonal grid generation
+- [x] 2. Implement MISO footprint and hexagonal grid generation
   - Create function to define MISO territory boundary from state list or shapefile
   - Implement hexagonal grid generator with ~40km spacing clipped to MISO footprint
   - Add grid cell ID assignment and centroid calculation
   - Write unit tests for spatial accuracy and coverage validation
   - _Requirements: 1.2, 7.4_
 
-- [ ] 3. Build weather data ingestion system
-  - [ ] 3.1 Implement NOAA/NWS gridpoint forecast adapter
+- [-] 3. Build weather data ingestion system
+  - [-] 3.1 Implement NOAA/NWS gridpoint forecast adapter
     - Create WeatherAdapter base class with standardized interface
     - Implement NOAA API client with error handling and rate limiting
     - Add spatial aggregation from forecast grid to hex cells (mean/max)
