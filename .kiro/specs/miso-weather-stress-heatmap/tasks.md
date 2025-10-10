@@ -58,58 +58,58 @@
     - Normalize transmission metrics and handle missing data gracefully
     - _Requirements: 3.3, 3.5_
 
-- [ ] 5. Implement feature engineering and normalization system
-  - [ ] 5.1 Create thermal stress calculation functions
+- [x] 5. Implement feature engineering and normalization system
+  - [x] 5.1 Create thermal stress calculation functions
     - Implement heat stress scoring: 0 at HI≤85°F, 1 at HI≥100°F, linear interpolation
     - Implement cold stress scoring: 0 at T≥10°F, 1 at T≤0°F, linear interpolation
     - Combine heat and cold into single thermal stress score (max of both)
     - Write unit tests validating threshold behavior and edge cases
     - _Requirements: 4.1, 4.4_
 
-  - [ ] 5.2 Create wind stress calculation functions
+  - [x] 5.2 Create wind stress calculation functions
     - Implement wind gust scoring: 0 at ≤20mph, 1 at ≥50mph, linear interpolation
     - Add sustained wind bonus: +0.2 if sustained wind ≥30mph
     - Cap maximum wind stress at 1.0 and validate scoring logic
     - Write tests for various wind speed combinations
     - _Requirements: 4.2, 4.4_
 
-  - [ ] 5.3 Create precipitation stress calculation functions
+  - [x] 5.3 Create precipitation stress calculation functions
     - Implement rain rate scoring: 0 at 0mm/h, 1 at ≥10mm/h
     - Implement snow rate scoring: 0 at 0cm/h, 1 at ≥5cm/h
     - Set ice accretion to immediate maximum score (1.0) for any ice
     - Combine precipitation types into single precipitation stress score
     - _Requirements: 4.3, 4.4_
 
-  - [ ] 5.4 Create storm proxy calculation
+  - [x] 5.4 Create storm proxy calculation
     - Implement combined storm scoring: precipitation > 0 AND wind gust ≥35mph = 1.0
     - Add scaled scoring based on precipitation × wind gust product for partial conditions
     - Validate storm detection logic against extreme weather scenarios
     - Write tests for storm proxy accuracy and threshold behavior
     - _Requirements: 4.4_
 
-- [ ] 6. Build risk scoring engine
-  - [ ] 6.1 Implement hazard score calculation
+- [x] 6. Build risk scoring engine
+  - [x] 6.1 Implement hazard score calculation
     - Combine thermal, wind, precipitation, and storm scores using configurable weights
     - Apply weighted sum: wT×Thermal + wW×Wind + wP×Precip + wS×Storm
     - Normalize hazard scores and validate weight configuration loading
     - Write tests for weight sensitivity and score range validation
     - _Requirements: 4.4, 5.4_
 
-  - [ ] 6.2 Implement exposure score calculation
+  - [x] 6.2 Implement exposure score calculation
     - Combine population density and optional load factor using configurable weights
     - Apply weighted sum: wPop×PopDensity + wLoad×LoadFactor
     - Handle missing load factor data gracefully with population-only scoring
     - Validate exposure scoring against urban vs rural areas
     - _Requirements: 4.4, 5.4_
 
-  - [ ] 6.3 Implement vulnerability score calculation
+  - [x] 6.3 Implement vulnerability score calculation
     - Combine renewable share, transmission scarcity, and outage flags using weights
     - Apply weighted sum: wRen×RenewShare + wTx×TxScarcity + wOut×OutageFlag
     - Handle missing transmission data with documented baseline values
     - Write tests for vulnerability scoring edge cases
     - _Requirements: 4.4, 5.4_
 
-  - [ ] 6.4 Create final risk score calculation
+  - [x] 6.4 Create final risk score calculation
     - Implement final risk formula: Risk = zscore(α×H + β×E + γ×V)
     - Calculate z-scores across all cells for each forecast horizon
     - Add configurable blend weights (alpha, beta, gamma) from YAML configuration
