@@ -36,22 +36,22 @@
     - Create standardized output format with cell_id, horizon_h, timestamp columns
     - _Requirements: 2.3, 2.4_
 
-- [ ] 4. Build infrastructure and exposure data system
-  - [ ] 4.1 Implement generation capacity data processor
+- [x] 4. Build infrastructure and exposure data system
+  - [x] 4.1 Implement generation capacity data processor
     - Load EIA-860/923 capacity data or equivalent public sources
     - Calculate renewable share (wind+solar) vs total capacity within 50km of each cell
     - Implement spatial joining of capacity points to hex grid cells
     - Add fuel mix breakdown and capacity density calculations
     - _Requirements: 3.2, 3.4_
 
-  - [ ] 4.2 Implement population and load exposure processor
+  - [x] 4.2 Implement population and load exposure processor
     - Load Census population density data at county or tract level
     - Spatially aggregate population data to hex grid cells
     - Add optional load factor weighting for major load centers
     - Normalize population density to [0,1] scale with documented thresholds
     - _Requirements: 3.1, 3.4_
 
-  - [ ] 4.3 Create transmission density processor
+  - [x] 4.3 Create transmission density processor
     - Implement transmission line density calculation if public data available
     - Add fallback to baseline transmission scarcity value (0.5) with documentation
     - Calculate distance to nearest high-voltage line or line crossing count per cell
