@@ -297,7 +297,35 @@ class FeatureEngineeringEngine:
         Returns:
             DataFrame with added stress score columns
         """
+        if weather_data.empty:
+            logging.warning("Empty weather data provided to process_weather_features")
+            # Return empty dataframe with expected columns
+            empty_result = pd.DataFrame(columns=[
+                'thermal_stress', 'wind_stress', 'precip_stress', 'storm_proxy'
+            ])
+            return empty_result
+        
         result_df = weather_data.copy()
+        
+        # Check for required columns and provide defaults
+        required_columns = {
+            'temp_2m': 70.0,  # Default temperature in Fahrenheit
+            'heat_index': 70.0,  # Default heat index
+            'wind_speed': 5.0,  # Default wind speed in mph
+            'wind_gust': 8.0,   # Default wind gust in mph
+            'precip_rate': 0.0,  # Default precipitation rate
+            'snow_rate': 0.0,    # Default snow rate
+            'ice_rate': 0.0      # Default ice rate
+        }
+        
+        missing_columns = []
+        for col, default_val in required_columns.items():
+            if col not in result_df.columns:
+                result_df[col] = default_val
+                missing_columns.append(col)
+        
+        if missing_columns:
+            logging.warning(f"Missing weather columns filled with defaults: {missing_columns}")
         
         # Calculate thermal stress
         result_df['thermal_stress'] = self.calculate_thermal_stress(

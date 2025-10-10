@@ -424,6 +424,12 @@ class RiskScoringEngine:
         Returns:
             DataFrame with added exposure_score column
         """
+        if infrastructure_data.empty:
+            logging.warning("Empty infrastructure data provided to process_exposure_scores")
+            # Return empty dataframe with expected columns
+            empty_result = pd.DataFrame(columns=['exposure_score'])
+            return empty_result
+        
         required_columns = ['normalized_pop_density']
         
         # Check for required columns
