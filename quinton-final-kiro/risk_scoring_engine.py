@@ -13,6 +13,7 @@ Key Components:
 - Confidence assessment based on data coverage and forecast horizon
 
 Risk Formula: Risk = zscore(α×Hazard + β×Exposure + γ×Vulnerability)
+Confidence Formula: Confidence = base_confidence × coverage_factor × horizon_factor
 """
 
 import numpy as np
@@ -1196,18 +1197,386 @@ class RiskScoringEngine:
         
         return summary
     
+    # CONFIDENCE ASSESSMENT METHODS
+    
+    def calculate_confidence(self, 
+                           data_coverage: Union[float, np.ndarray, pd.Series],
+                           horizon_h: Union[int, np.ndarray, pd.Series],
+                           base_confidence: float = 0.9,
+                           coverage_threshold: float = 0.8,
+                           horizon_decay_rate: float = 0.02) -> Union[float, np.ndarray, pd.Series]:
+        """
+        Calculate confidence score based on data coverage and forecast horizon.
+        
+        Confidence decreases with:
+        - Lower data coverage (below threshold gets penalty)
+        - Longer forecast horizons (exponential decay)
+        - Missing infrastructure or weather data
+        
+        Formula: Confidence = base_confidence × coverage_factor × horizon_factor
+        
+        Args:
+            data_coverage: Data coverage ratio [0,1]
+            horizon_h: Forecast horizon in hours
+            base_confidence: Base confidence level (default 0.9)
+            coverage_threshold: Coverage threshold below which penalty applies (default 0.8)
+            horizon_decay_rate: Rate of confidence decay per hour (default 0.05)
+            
+        Returns:
+            Confidence score [0,1]
+        """
+        # Validate inputs
+        if isinstance(data_coverage, (np.ndarray, pd.Series)):
+            if np.any(data_coverage < 0) or np.any(data_coverage > 1):
+                logging.warning("Data coverage values outside [0,1] range detected")
+                data_coverage = np.clip(data_coverage, 0.0, 1.0)
+        else:
+            if data_coverage < 0 or data_coverage > 1:
+                logging.warning(f"Data coverage outside [0,1] range: {data_coverage}")
+                data_coverage = max(0.0, min(1.0, data_coverage))
+        
+        # Calculate coverage factor
+        # Linear penalty below threshold, no penalty above threshold
+        if isinstance(data_coverage, (np.ndarray, pd.Series)):
+            coverage_factor = np.where(
+                data_coverage >= coverage_threshold,
+                1.0,
+                data_coverage / coverage_threshold
+            )
+        else:
+            coverage_factor = 1.0 if data_coverage >= coverage_threshold else data_coverage / coverage_threshold
+        
+        # Calculate horizon factor (exponential decay)
+        # Confidence decreases exponentially with forecast horizon
+        if isinstance(horizon_h, (np.ndarray, pd.Series)):
+            horizon_factor = np.exp(-horizon_decay_rate * horizon_h)  # Direct exponential decay
+        else:
+            horizon_factor = np.exp(-horizon_decay_rate * horizon_h)
+        
+        # Calculate final confidence
+        confidence = base_confidence * coverage_factor * horizon_factor
+        
+        # Ensure result is in [0,1] range
+        if isinstance(confidence, (np.ndarray, pd.Series)):
+            confidence = np.clip(confidence, 0.0, 1.0)
+        else:
+            confidence = max(0.0, min(1.0, confidence))
+        
+        return confidence
+    
+    def calculate_data_coverage(self, 
+                              weather_data: pd.DataFrame,
+                              infrastructure_data: pd.DataFrame) -> Dict[str, float]:
+        """
+        Calculate data coverage metrics for confidence assessment.
+        
+        Args:
+            weather_data: DataFrame with weather data
+            infrastructure_data: DataFrame with infrastructure data
+            
+        Returns:
+            Dictionary with coverage metrics
+        """
+        coverage_metrics = {}
+        
+        # Weather data coverage
+        weather_required_cols = ['thermal_stress', 'wind_stress', 'precip_stress', 'storm_proxy']
+        weather_coverage = []
+        
+        for col in weather_required_cols:
+            if col in weather_data.columns:
+                # Calculate non-null coverage
+                non_null_ratio = 1.0 - weather_data[col].isna().sum() / len(weather_data)
+                weather_coverage.append(non_null_ratio)
+            else:
+                weather_coverage.append(0.0)
+        
+        coverage_metrics['weather_coverage'] = np.mean(weather_coverage)
+        
+        # Infrastructure data coverage
+        infra_required_cols = ['normalized_pop_density', 'renewable_share']
+        infra_optional_cols = ['load_factor', 'transmission_scarcity', 'outage_flag']
+        
+        infra_coverage = []
+        
+        # Required infrastructure data
+        for col in infra_required_cols:
+            if col in infrastructure_data.columns:
+                non_null_ratio = 1.0 - infrastructure_data[col].isna().sum() / len(infrastructure_data)
+                infra_coverage.append(non_null_ratio)
+            else:
+                infra_coverage.append(0.0)
+        
+        # Optional infrastructure data (weighted less)
+        optional_coverage = []
+        for col in infra_optional_cols:
+            if col in infrastructure_data.columns:
+                non_null_ratio = 1.0 - infrastructure_data[col].isna().sum() / len(infrastructure_data)
+                optional_coverage.append(non_null_ratio)
+            else:
+                optional_coverage.append(0.0)  # Missing optional data gets 0
+        
+        # Weight required data more heavily than optional data
+        required_weight = 0.8
+        optional_weight = 0.2
+        
+        coverage_metrics['infrastructure_coverage'] = (
+            required_weight * np.mean(infra_coverage) + 
+            optional_weight * np.mean(optional_coverage)
+        )
+        
+        # Overall coverage (average of weather and infrastructure)
+        coverage_metrics['overall_coverage'] = (
+            coverage_metrics['weather_coverage'] + 
+            coverage_metrics['infrastructure_coverage']
+        ) / 2.0
+        
+        # Individual component coverage for detailed analysis
+        coverage_metrics['weather_components'] = dict(zip(weather_required_cols, weather_coverage))
+        coverage_metrics['infrastructure_components'] = dict(zip(
+            infra_required_cols + infra_optional_cols, 
+            infra_coverage + optional_coverage
+        ))
+        
+        return coverage_metrics
+    
+    def add_confidence_scores(self, 
+                            risk_data: pd.DataFrame,
+                            weather_data: pd.DataFrame,
+                            infrastructure_data: pd.DataFrame) -> pd.DataFrame:
+        """
+        Add confidence scores to risk assessment data.
+        
+        Args:
+            risk_data: DataFrame with risk scores and horizon information
+            weather_data: DataFrame with weather data for coverage calculation
+            infrastructure_data: DataFrame with infrastructure data for coverage calculation
+            
+        Returns:
+            DataFrame with added confidence scores
+        """
+        result_df = risk_data.copy()
+        
+        # Calculate data coverage metrics
+        coverage_metrics = self.calculate_data_coverage(weather_data, infrastructure_data)
+        overall_coverage = coverage_metrics['overall_coverage']
+        
+        logging.info(f"Data coverage metrics: Weather={coverage_metrics['weather_coverage']:.3f}, "
+                    f"Infrastructure={coverage_metrics['infrastructure_coverage']:.3f}, "
+                    f"Overall={overall_coverage:.3f}")
+        
+        # Calculate confidence for each row based on horizon
+        if 'horizon_h' in result_df.columns:
+            result_df['confidence'] = self.calculate_confidence(
+                overall_coverage,  # Same coverage for all cells
+                result_df['horizon_h']
+            )
+        else:
+            # If no horizon information, use default 12h horizon
+            logging.warning("No horizon information found, using default 12h for confidence calculation")
+            result_df['confidence'] = self.calculate_confidence(overall_coverage, 12)
+        
+        # Add per-cell data quality penalties if available
+        if 'cell_id' in result_df.columns:
+            # Check for cell-specific data quality issues
+            result_df = self._apply_cell_specific_confidence_penalties(
+                result_df, weather_data, infrastructure_data
+            )
+        
+        logging.info(f"Added confidence scores: mean={result_df['confidence'].mean():.3f}, "
+                    f"min={result_df['confidence'].min():.3f}, "
+                    f"max={result_df['confidence'].max():.3f}")
+        
+        return result_df
+    
+    def _apply_cell_specific_confidence_penalties(self, 
+                                                risk_data: pd.DataFrame,
+                                                weather_data: pd.DataFrame,
+                                                infrastructure_data: pd.DataFrame) -> pd.DataFrame:
+        """
+        Apply cell-specific confidence penalties based on data quality.
+        
+        Args:
+            risk_data: DataFrame with risk scores and confidence
+            weather_data: DataFrame with weather data
+            infrastructure_data: DataFrame with infrastructure data
+            
+        Returns:
+            DataFrame with adjusted confidence scores
+        """
+        result_df = risk_data.copy()
+        
+        # Create cell-level data quality metrics
+        cell_quality = {}
+        
+        # Weather data quality by cell
+        if 'cell_id' in weather_data.columns:
+            weather_cols = ['thermal_stress', 'wind_stress', 'precip_stress', 'storm_proxy']
+            for cell_id in weather_data['cell_id'].unique():
+                cell_weather = weather_data[weather_data['cell_id'] == cell_id]
+                
+                # Calculate completeness for this cell
+                completeness_scores = []
+                for col in weather_cols:
+                    if col in cell_weather.columns:
+                        completeness = 1.0 - cell_weather[col].isna().sum() / len(cell_weather)
+                        completeness_scores.append(completeness)
+                    else:
+                        completeness_scores.append(0.0)
+                
+                cell_quality[cell_id] = {'weather_quality': np.mean(completeness_scores)}
+        
+        # Infrastructure data quality by cell
+        if 'cell_id' in infrastructure_data.columns:
+            infra_cols = ['normalized_pop_density', 'renewable_share', 'transmission_scarcity']
+            for cell_id in infrastructure_data['cell_id'].unique():
+                cell_infra = infrastructure_data[infrastructure_data['cell_id'] == cell_id]
+                
+                # Calculate completeness for this cell
+                completeness_scores = []
+                for col in infra_cols:
+                    if col in cell_infra.columns:
+                        completeness = 1.0 - cell_infra[col].isna().sum() / len(cell_infra)
+                        completeness_scores.append(completeness)
+                    else:
+                        completeness_scores.append(0.0)
+                
+                if cell_id in cell_quality:
+                    cell_quality[cell_id]['infra_quality'] = np.mean(completeness_scores)
+                else:
+                    cell_quality[cell_id] = {'infra_quality': np.mean(completeness_scores)}
+        
+        # Apply cell-specific penalties
+        for idx, row in result_df.iterrows():
+            cell_id = row['cell_id']
+            
+            if cell_id in cell_quality:
+                quality_metrics = cell_quality[cell_id]
+                
+                # Calculate quality penalty
+                weather_quality = quality_metrics.get('weather_quality', 1.0)
+                infra_quality = quality_metrics.get('infra_quality', 1.0)
+                
+                # Average quality across data types
+                cell_data_quality = (weather_quality + infra_quality) / 2.0
+                
+                # Apply penalty if quality is below threshold
+                quality_threshold = 0.9
+                if cell_data_quality < quality_threshold:
+                    quality_penalty = cell_data_quality / quality_threshold
+                    result_df.loc[idx, 'confidence'] *= quality_penalty
+                    
+                    if quality_penalty < 0.8:  # Log significant penalties
+                        logging.debug(f"Applied quality penalty to cell {cell_id}: "
+                                    f"penalty={quality_penalty:.3f}, "
+                                    f"weather_quality={weather_quality:.3f}, "
+                                    f"infra_quality={infra_quality:.3f}")
+        
+        # Ensure confidence remains in [0,1] range
+        result_df['confidence'] = np.clip(result_df['confidence'], 0.0, 1.0)
+        
+        return result_df
+    
+    def validate_confidence_ranges(self, data: pd.DataFrame) -> Dict[str, bool]:
+        """
+        Validate that confidence scores are in proper [0,1] range.
+        
+        Args:
+            data: DataFrame with confidence scores
+            
+        Returns:
+            Dictionary of validation results
+        """
+        validation_results = {}
+        
+        if 'confidence' not in data.columns:
+            validation_results['confidence_exists'] = False
+            return validation_results
+        
+        validation_results['confidence_exists'] = True
+        confidence_scores = data['confidence']
+        
+        # Check range [0,1]
+        validation_results['confidence_range_valid'] = (
+            (confidence_scores >= 0.0).all() and (confidence_scores <= 1.0).all()
+        )
+        
+        # Check for NaN values
+        validation_results['confidence_no_nan'] = not confidence_scores.isna().any()
+        
+        # Check that confidence decreases with horizon (if horizon data available)
+        if 'horizon_h' in data.columns:
+            horizon_confidence = data.groupby('horizon_h')['confidence'].mean()
+            horizons = sorted(horizon_confidence.index)
+            
+            # Check if confidence generally decreases with horizon
+            decreasing_trend = True
+            for i in range(1, len(horizons)):
+                if horizon_confidence[horizons[i]] > horizon_confidence[horizons[i-1]]:
+                    decreasing_trend = False
+                    break
+            
+            validation_results['confidence_decreases_with_horizon'] = decreasing_trend
+        else:
+            validation_results['confidence_decreases_with_horizon'] = None
+        
+        return validation_results
+    
+    def get_confidence_summary_statistics(self, data: pd.DataFrame) -> Dict[str, Any]:
+        """
+        Get summary statistics for confidence scores.
+        
+        Args:
+            data: DataFrame with confidence scores
+            
+        Returns:
+            Dictionary of summary statistics
+        """
+        if 'confidence' not in data.columns:
+            return {}
+        
+        confidence_scores = data['confidence']
+        
+        summary = {
+            'count': len(confidence_scores),
+            'mean': float(confidence_scores.mean()),
+            'std': float(confidence_scores.std()),
+            'min': float(confidence_scores.min()),
+            'max': float(confidence_scores.max()),
+            'median': float(confidence_scores.median()),
+            'q25': float(confidence_scores.quantile(0.25)),
+            'q75': float(confidence_scores.quantile(0.75))
+        }
+        
+        # Add horizon-specific statistics if available
+        if 'horizon_h' in data.columns:
+            horizon_summary = {}
+            for horizon in sorted(data['horizon_h'].unique()):
+                horizon_data = data[data['horizon_h'] == horizon]['confidence']
+                horizon_summary[f'{horizon}h'] = {
+                    'count': len(horizon_data),
+                    'mean': float(horizon_data.mean()),
+                    'std': float(horizon_data.std()),
+                    'min': float(horizon_data.min()),
+                    'max': float(horizon_data.max())
+                }
+            
+            summary['by_horizon'] = horizon_summary
+        
+        return summary
+    
     def create_complete_risk_assessment(self, 
                                       weather_data: pd.DataFrame,
                                       infrastructure_data: pd.DataFrame) -> pd.DataFrame:
         """
-        Create complete risk assessment combining all components.
+        Create complete risk assessment combining all components with confidence scores.
         
         Args:
             weather_data: DataFrame with weather stress scores
             infrastructure_data: DataFrame with infrastructure scores
             
         Returns:
-            DataFrame with complete risk assessment
+            DataFrame with complete risk assessment including confidence scores
         """
         # Process hazard scores
         hazard_data = self.process_hazard_scores(weather_data)
@@ -1239,9 +1608,14 @@ class RiskScoringEngine:
         # Calculate final risk scores
         final_data = self.calculate_final_risk_scores_by_horizon(combined_data)
         
-        logging.info(f"Created complete risk assessment for {len(final_data)} records")
+        # Add confidence scores
+        final_data_with_confidence = self.add_confidence_scores(
+            final_data, weather_data, infrastructure_data
+        )
         
-        return final_data
+        logging.info(f"Created complete risk assessment for {len(final_data_with_confidence)} records")
+        
+        return final_data_with_confidence
 
 
 def test_weight_sensitivity(engine: RiskScoringEngine, 

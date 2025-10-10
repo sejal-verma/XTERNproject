@@ -476,6 +476,315 @@ class TestWeightSensitivity(unittest.TestCase):
         self.assertAlmostEqual(weight_sum, 1.0, places=3)
 
 
+class TestConfidenceAssessment(unittest.TestCase):
+    """Test confidence assessment system"""
+    
+    def setUp(self):
+        """Set up test fixtures"""
+        self.engine = RiskScoringEngine()
+    
+    def test_calculate_confidence_basic(self):
+        """Test basic confidence calculation"""
+        # Test with perfect coverage and 12h horizon
+        confidence = self.engine.calculate_confidence(1.0, 12)
+        self.assertGreater(confidence, 0.7)  # Should be reasonably high confidence
+        self.assertLessEqual(confidence, 1.0)
+        
+        # Test with poor coverage
+        confidence_poor = self.engine.calculate_confidence(0.5, 12)
+        self.assertLess(confidence_poor, confidence)  # Should be lower
+        
+        # Test with longer horizon
+        confidence_long = self.engine.calculate_confidence(1.0, 48)
+        self.assertLess(confidence_long, confidence)  # Should decrease with horizon
+    
+    def test_calculate_confidence_array_input(self):
+        """Test confidence calculation with array inputs"""
+        coverage = np.array([1.0, 0.8, 0.5])
+        horizons = np.array([12, 24, 48])
+        
+        confidences = self.engine.calculate_confidence(coverage, horizons)
+        
+        self.assertIsInstance(confidences, np.ndarray)
+        self.assertEqual(len(confidences), 3)
+        self.assertTrue((confidences >= 0.0).all())
+        self.assertTrue((confidences <= 1.0).all())
+        
+        # Check that confidence decreases with worse coverage and longer horizon
+        self.assertGreater(confidences[0], confidences[1])  # Better coverage
+        self.assertGreater(confidences[1], confidences[2])  # Shorter horizon
+    
+    def test_calculate_confidence_pandas_input(self):
+        """Test confidence calculation with pandas Series"""
+        df = pd.DataFrame({
+            'coverage': [1.0, 0.8, 0.5],
+            'horizon': [12, 24, 48]
+        })
+        
+        confidences = self.engine.calculate_confidence(df['coverage'], df['horizon'])
+        
+        self.assertIsInstance(confidences, pd.Series)
+        self.assertEqual(len(confidences), 3)
+    
+    def test_calculate_confidence_edge_cases(self):
+        """Test confidence calculation edge cases"""
+        # Test with zero coverage
+        confidence_zero = self.engine.calculate_confidence(0.0, 12)
+        self.assertEqual(confidence_zero, 0.0)
+        
+        # Test with coverage above threshold
+        confidence_high = self.engine.calculate_confidence(0.9, 12)
+        confidence_perfect = self.engine.calculate_confidence(1.0, 12)
+        self.assertAlmostEqual(confidence_high, confidence_perfect, places=3)
+        
+        # Test with very long horizon
+        confidence_very_long = self.engine.calculate_confidence(1.0, 120)
+        self.assertLess(confidence_very_long, 0.6)  # Should be significantly lower than base
+    
+    def test_calculate_data_coverage(self):
+        """Test data coverage calculation"""
+        # Create sample weather data
+        weather_data = pd.DataFrame({
+            'cell_id': ['A', 'B', 'C'],
+            'thermal_stress': [0.5, np.nan, 0.8],  # 2/3 coverage
+            'wind_stress': [0.3, 0.6, 0.9],        # 3/3 coverage
+            'precip_stress': [0.1, 0.2, np.nan],   # 2/3 coverage
+            'storm_proxy': [0.0, 0.4, 0.7]         # 3/3 coverage
+        })
+        
+        # Create sample infrastructure data
+        infrastructure_data = pd.DataFrame({
+            'cell_id': ['A', 'B', 'C'],
+            'normalized_pop_density': [0.2, 0.6, 0.9],  # 3/3 coverage
+            'renewable_share': [0.3, np.nan, 0.8],      # 2/3 coverage
+            'load_factor': [0.1, 0.5, np.nan],          # 2/3 coverage (optional)
+            'transmission_scarcity': [0.4, 0.5, 0.6]    # 3/3 coverage (optional)
+        })
+        
+        coverage_metrics = self.engine.calculate_data_coverage(weather_data, infrastructure_data)
+        
+        # Check that coverage metrics are calculated
+        self.assertIn('weather_coverage', coverage_metrics)
+        self.assertIn('infrastructure_coverage', coverage_metrics)
+        self.assertIn('overall_coverage', coverage_metrics)
+        
+        # Weather coverage should be (2+3+2+3)/4/3 = 10/12 ≈ 0.833
+        expected_weather_coverage = (2/3 + 3/3 + 2/3 + 3/3) / 4
+        self.assertAlmostEqual(coverage_metrics['weather_coverage'], expected_weather_coverage, places=2)
+        
+        # Check that overall coverage is reasonable
+        self.assertGreater(coverage_metrics['overall_coverage'], 0.5)
+        self.assertLessEqual(coverage_metrics['overall_coverage'], 1.0)
+    
+    def test_calculate_data_coverage_missing_columns(self):
+        """Test data coverage calculation with missing columns"""
+        # Weather data missing some columns
+        weather_data = pd.DataFrame({
+            'cell_id': ['A', 'B', 'C'],
+            'thermal_stress': [0.5, 0.7, 0.8],
+            # Missing wind_stress, precip_stress, storm_proxy
+        })
+        
+        # Infrastructure data missing some columns
+        infrastructure_data = pd.DataFrame({
+            'cell_id': ['A', 'B', 'C'],
+            'normalized_pop_density': [0.2, 0.6, 0.9],
+            # Missing renewable_share and optional columns
+        })
+        
+        coverage_metrics = self.engine.calculate_data_coverage(weather_data, infrastructure_data)
+        
+        # Coverage should be low due to missing columns
+        self.assertLess(coverage_metrics['weather_coverage'], 0.5)
+        self.assertLess(coverage_metrics['infrastructure_coverage'], 0.5)
+        self.assertLess(coverage_metrics['overall_coverage'], 0.5)
+    
+    def test_add_confidence_scores(self):
+        """Test adding confidence scores to risk data"""
+        # Create sample risk data
+        risk_data = pd.DataFrame({
+            'cell_id': ['A', 'B', 'C', 'A', 'B', 'C'],
+            'horizon_h': [12, 12, 12, 24, 24, 24],
+            'hazard_score': [0.2, 0.5, 0.8, 0.3, 0.6, 0.9],
+            'exposure_score': [0.3, 0.6, 0.9, 0.4, 0.7, 1.0],
+            'vulnerability_score': [0.1, 0.4, 0.7, 0.2, 0.5, 0.8],
+            'final_risk': [-1.0, 0.0, 1.0, -0.8, 0.2, 1.2]
+        })
+        
+        # Create sample weather and infrastructure data
+        weather_data = pd.DataFrame({
+            'cell_id': ['A', 'B', 'C'],
+            'thermal_stress': [0.5, 0.7, 0.8],
+            'wind_stress': [0.3, 0.6, 0.9],
+            'precip_stress': [0.1, 0.2, 0.4],
+            'storm_proxy': [0.0, 0.4, 0.7]
+        })
+        
+        infrastructure_data = pd.DataFrame({
+            'cell_id': ['A', 'B', 'C'],
+            'normalized_pop_density': [0.2, 0.6, 0.9],
+            'renewable_share': [0.3, 0.7, 0.8]
+        })
+        
+        result = self.engine.add_confidence_scores(risk_data, weather_data, infrastructure_data)
+        
+        # Check that confidence column is added
+        self.assertIn('confidence', result.columns)
+        
+        # Check that all confidence values are in [0,1] range
+        self.assertTrue((result['confidence'] >= 0.0).all())
+        self.assertTrue((result['confidence'] <= 1.0).all())
+        
+        # Check that confidence decreases with horizon
+        confidence_12h = result[result['horizon_h'] == 12]['confidence'].mean()
+        confidence_24h = result[result['horizon_h'] == 24]['confidence'].mean()
+        self.assertGreater(confidence_12h, confidence_24h)
+    
+    def test_add_confidence_scores_no_horizon(self):
+        """Test adding confidence scores without horizon information"""
+        # Risk data without horizon column
+        risk_data = pd.DataFrame({
+            'cell_id': ['A', 'B', 'C'],
+            'final_risk': [-1.0, 0.0, 1.0]
+        })
+        
+        weather_data = pd.DataFrame({
+            'cell_id': ['A', 'B', 'C'],
+            'thermal_stress': [0.5, 0.7, 0.8],
+            'wind_stress': [0.3, 0.6, 0.9],
+            'precip_stress': [0.1, 0.2, 0.4],
+            'storm_proxy': [0.0, 0.4, 0.7]
+        })
+        
+        infrastructure_data = pd.DataFrame({
+            'cell_id': ['A', 'B', 'C'],
+            'normalized_pop_density': [0.2, 0.6, 0.9],
+            'renewable_share': [0.3, 0.7, 0.8]
+        })
+        
+        result = self.engine.add_confidence_scores(risk_data, weather_data, infrastructure_data)
+        
+        # Should still add confidence scores using default horizon
+        self.assertIn('confidence', result.columns)
+        self.assertTrue((result['confidence'] >= 0.0).all())
+        self.assertTrue((result['confidence'] <= 1.0).all())
+    
+    def test_validate_confidence_ranges(self):
+        """Test confidence range validation"""
+        # Valid confidence data (decreasing with horizon)
+        valid_data = pd.DataFrame({
+            'confidence': [1.0, 0.5, 0.0],
+            'horizon_h': [12, 24, 48]
+        })
+        
+        validation = self.engine.validate_confidence_ranges(valid_data)
+        
+        self.assertTrue(validation['confidence_exists'])
+        self.assertTrue(validation['confidence_range_valid'])
+        self.assertTrue(validation['confidence_no_nan'])
+        self.assertTrue(validation['confidence_decreases_with_horizon'])
+        
+        # Invalid confidence data (out of range)
+        invalid_data = pd.DataFrame({
+            'confidence': [-0.1, 0.5, 1.1],
+            'horizon_h': [12, 24, 48]
+        })
+        
+        validation_invalid = self.engine.validate_confidence_ranges(invalid_data)
+        
+        self.assertFalse(validation_invalid['confidence_range_valid'])
+        
+        # Data with NaN values
+        nan_data = pd.DataFrame({
+            'confidence': [0.5, np.nan, 0.8]
+        })
+        
+        validation_nan = self.engine.validate_confidence_ranges(nan_data)
+        
+        self.assertFalse(validation_nan['confidence_no_nan'])
+    
+    def test_validate_confidence_horizon_trend(self):
+        """Test confidence decreasing trend with horizon"""
+        # Data where confidence increases with horizon (should fail validation)
+        increasing_data = pd.DataFrame({
+            'confidence': [0.5, 0.7, 0.9],
+            'horizon_h': [12, 24, 48]
+        })
+        
+        validation = self.engine.validate_confidence_ranges(increasing_data)
+        
+        self.assertFalse(validation['confidence_decreases_with_horizon'])
+        
+        # Data where confidence decreases with horizon (should pass validation)
+        decreasing_data = pd.DataFrame({
+            'confidence': [0.9, 0.7, 0.5],
+            'horizon_h': [12, 24, 48]
+        })
+        
+        validation_decreasing = self.engine.validate_confidence_ranges(decreasing_data)
+        
+        self.assertTrue(validation_decreasing['confidence_decreases_with_horizon'])
+    
+    def test_get_confidence_summary_statistics(self):
+        """Test confidence summary statistics"""
+        data = pd.DataFrame({
+            'confidence': [0.2, 0.5, 0.8, 0.3, 0.6, 0.9],
+            'horizon_h': [12, 12, 12, 24, 24, 24]
+        })
+        
+        summary = self.engine.get_confidence_summary_statistics(data)
+        
+        # Check basic statistics
+        self.assertIn('mean', summary)
+        self.assertIn('std', summary)
+        self.assertIn('min', summary)
+        self.assertIn('max', summary)
+        
+        # Check horizon-specific statistics
+        self.assertIn('by_horizon', summary)
+        self.assertIn('12h', summary['by_horizon'])
+        self.assertIn('24h', summary['by_horizon'])
+        
+        # Verify calculations
+        self.assertAlmostEqual(summary['mean'], data['confidence'].mean(), places=3)
+        self.assertAlmostEqual(summary['min'], data['confidence'].min(), places=3)
+        self.assertAlmostEqual(summary['max'], data['confidence'].max(), places=3)
+    
+    def test_confidence_integration_with_risk_assessment(self):
+        """Test confidence integration in complete risk assessment"""
+        # Create comprehensive test data
+        weather_data = pd.DataFrame({
+            'cell_id': ['A', 'B', 'C', 'A', 'B', 'C'],
+            'horizon_h': [12, 12, 12, 24, 24, 24],
+            'thermal_stress': [0.2, 0.6, 0.9, 0.3, 0.7, 1.0],
+            'wind_stress': [0.1, 0.5, 0.8, 0.2, 0.6, 0.9],
+            'precip_stress': [0.0, 0.3, 0.7, 0.1, 0.4, 0.8],
+            'storm_proxy': [0.0, 0.2, 0.6, 0.1, 0.3, 0.7]
+        })
+        
+        infrastructure_data = pd.DataFrame({
+            'cell_id': ['A', 'B', 'C'],
+            'normalized_pop_density': [0.2, 0.6, 0.9],
+            'renewable_share': [0.3, 0.7, 0.9],
+            'transmission_scarcity': [0.4, 0.5, 0.6]
+        })
+        
+        # Create complete risk assessment
+        result = self.engine.create_complete_risk_assessment(weather_data, infrastructure_data)
+        
+        # Check that confidence is included
+        self.assertIn('confidence', result.columns)
+        
+        # Validate confidence properties
+        validation = self.engine.validate_confidence_ranges(result)
+        self.assertTrue(validation['confidence_range_valid'])
+        self.assertTrue(validation['confidence_no_nan'])
+        
+        # Check that confidence decreases with horizon
+        if validation['confidence_decreases_with_horizon'] is not None:
+            self.assertTrue(validation['confidence_decreases_with_horizon'])
+
+
 class TestRiskScoringEngineIntegration(unittest.TestCase):
     """Test complete risk scoring engine integration"""
     
