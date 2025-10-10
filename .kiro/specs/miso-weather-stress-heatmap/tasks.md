@@ -14,22 +14,22 @@
   - Write unit tests for spatial accuracy and coverage validation
   - _Requirements: 1.2, 7.4_
 
-- [-] 3. Build weather data ingestion system
-  - [-] 3.1 Implement NOAA/NWS gridpoint forecast adapter
+- [x] 3. Build weather data ingestion system
+  - [x] 3.1 Implement NOAA/NWS gridpoint forecast adapter
     - Create WeatherAdapter base class with standardized interface
     - Implement NOAA API client with error handling and rate limiting
     - Add spatial aggregation from forecast grid to hex cells (mean/max)
     - Write data caching system for raw API responses
     - _Requirements: 2.1, 2.3, 2.4, 2.5_
 
-  - [ ] 3.2 Implement Open-Meteo fallback adapter
+  - [x] 3.2 Implement Open-Meteo fallback adapter
     - Create Open-Meteo API client following WeatherAdapter interface
     - Implement same spatial aggregation and caching patterns
     - Add automatic fallback logic when NOAA/NWS fails
     - Write tests for adapter switching and data consistency
     - _Requirements: 2.2, 2.3, 2.4, 2.5_
 
-  - [ ] 3.3 Create weather feature extraction pipeline
+  - [x] 3.3 Create weather feature extraction pipeline
     - Extract temperature, heat index, wind speed, wind gust, precipitation, snow, dewpoint, RH
     - Implement storm probability calculation from precipitation and wind data
     - Add data validation and quality checks for weather parameters
